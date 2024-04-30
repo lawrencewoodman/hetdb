@@ -1,0 +1,29 @@
+tabledef {
+  {name tag mandatory {name title}}
+  {name link unique url mandatory {url title tags}}
+}
+
+tag {
+  {name cooking title {How to Cook} main true}
+  {name mechanics title {How to Make Things} main true}
+  {name article title {An Article} main false}
+}
+
+
+link {
+  {url {https://example.com/how_to_make_pie/}
+   title {How to Make Pie}
+   tags {cooking article}
+  }
+  
+  {url {http://example.com/how_to_make_biryani/}
+   tirtle {How to Make Biryani - Part 2}
+   tags {cooking article}
+  }
+  
+  {url {http://example.com/how_to_make_a_car/}
+   title {How to Make a Car}
+   tags {mechanics article}
+  }
+}
+
