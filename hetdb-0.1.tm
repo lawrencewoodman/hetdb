@@ -14,7 +14,17 @@ namespace eval hetdb {
 }
 
 
-# TODO: rename?
+# hetdb::read
+#
+# Read an entire database from a text file.
+#
+# Arguments:
+#   filename  The name of a text file containing a database. It is an
+#             error to read a file which isn't a valid database.
+#
+# Results:
+#   A database.
+#
 proc hetdb::read {filename} {
   set isErr [catch {
     set fd [open $filename r]
