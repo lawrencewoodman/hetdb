@@ -33,13 +33,13 @@ test read-3 {Check raises error if outer db not valid dict} \
 test read-4 {Check raises error if table not valid list} \
 -body {
   set db [hetdb read [file join $FixturesDir table_not_valid.hetdb]]
-} -returnCodes {error} -result {structure of table not valid, table: tag}
+} -returnCodes {error} -result {structure of table "tag" not valid}
 
 
 test read-5 {Check raises error if row not valid dict} \
 -body {
   set db [hetdb read [file join $FixturesDir row_not_valid.hetdb]]
-} -returnCodes {error} -result {structure of row not valid, table: link, row: 1}
+} -returnCodes {error} -result {structure of row 1 in table "link" not valid}
 
 
 test verify-1 {Check valid database is verified as correct} \
@@ -56,7 +56,7 @@ test verify-2 {Check 'unique' in tabledef identifies non unique fields and trims
   set db [hetdb read [file join $FixturesDir non_unique.hetdb]]
 } -body {
   hetdb verify $db tabledef
-} -result {false {table: link, key isn't unique: url}}
+} -result {false {field "url" in table "link" isn't unique}}
 
 
 # TODO: Rename tabledef?
@@ -65,7 +65,7 @@ test verify-3 {Check 'mandatory' in tabledef identifies missing fields} \
   set db [hetdb read [file join $FixturesDir missing_mandatory.hetdb]]
 } -body {
   hetdb verify $db tabledef
-} -result {false {table: link, missing key: title}}
+} -result {false {mandatory field "title" in table "link" is missing}}
 
 
 test for-1 {Check calls body script for each row of table} \
@@ -188,7 +188,7 @@ test forfields-2 {Check can handle field missing in row} \
     lappend rows [list $tag_name $tag_title]
   }
   set rows
-} -returnCodes {error} -result {unknown field in row: priority}
+} -returnCodes {error} -result {field "priority" missing from row}
 
 #
 # Used by forfields-3 to check error handled

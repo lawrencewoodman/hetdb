@@ -30,12 +30,12 @@ proc hetdb::read {filename} {
   }
   dict for {tablename rows} $db {
     if {![string is list $rows]} {
-      return -code error "structure of table not valid, table: $tablename"
+      return -code error "structure of table \"$tablename\" not valid"
     }
     set rowNum 0
     foreach row $rows {
       if {![IsDict $row]} {
-        return -code error "structure of row not valid, table: $tablename, row: $rowNum"
+        return -code error "structure of row $rowNum in table \"$tablename\" not valid"
       }
       incr rowNum
     }
@@ -114,7 +114,7 @@ proc hetdb::forfields {db tablename fieldPrefix fields body} {
   foreach row [dict get $db $tablename] {
     foreach fieldname $fields {
       if {[catch {dict get $row $fieldname} val]} {
-        return -code error "unknown field in row: $fieldname"
+        return -code error "field \"$fieldname\" missing from row"
       }
       uplevel 1 [list set $fieldPrefix$fieldname $val]
     }
@@ -156,7 +156,6 @@ proc hetdb::sort {db tablename command} {
 
 
 # TODO: Rename?
-# TODO: Improve error message format
 # DOCUMENT: Unique fields are trimmed before comparing
 proc hetdb::verify {db tabledefname} {
   hetdb::for $db $tabledefname tabledef {
@@ -177,14 +176,14 @@ proc hetdb::verify {db tabledefname} {
       set keys [dict keys $row]
       foreach mankey $mandatory {
         if {$mankey ni $keys} {
-          return [list false "table: $tablename, missing key: $mankey"]
+          return [list false "mandatory field \"$mankey\" in table \"$tablename\" is missing"]
         }
       }
       foreach key $keys {
         if {$key in $unique} {
           set val [string trim [dict get $row $key]]
           if {[dict exists $uniques $key $val]} {
-            return [list false "table: $tablename, key isn't unique: $key"]
+            return [list false "field \"$key\" in table \"$tablename\" isn't unique"]
           } else {
             dict set uniques $key $val 1
           }
