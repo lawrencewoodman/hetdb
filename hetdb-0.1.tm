@@ -96,7 +96,7 @@ proc hetdb::for {db tablename varname body} {
 #   tablename   The name of the table.
 #   fieldPrefix This is prefixed to each field to create the variables
 #               for each field specified in fields.
-#   fields      A list of fields whose values will retrevied for each row and
+#   fields      A list of fields whose values will retrieved for each row and
 #               variables will be set with their value.  The field variable
 #               names will consist of the field name prefixed with
 #               fieldPrefix.  It is an error to attempt to access a field
@@ -135,6 +135,20 @@ proc hetdb::forfields {db tablename fieldPrefix fields body} {
 }
 
 
+# hetdb::sort
+#
+# Sort a table.
+#
+# Arguments:
+#   db        The database that contains the table.
+#   tablename The name of the table.
+#   command   A command to compare two rows of a table.  The command will
+#             be called repeatedly with two arguments containing a row in
+#             each.  This follows the same use as lsort -command.
+#
+# Results:
+#   A database with the table sorted using command.
+#
 proc hetdb::sort {db tablename command} {
   set tb [dict get $db $tablename]
   dict set db $tablename [lsort -command $command $tb]
@@ -182,6 +196,7 @@ proc hetdb::verify {db tabledefname} {
 }
 
 
+# Returns whether value is a valid dictionary
 proc hetdb::IsDict value {
   expr {![catch {dict size $value}]}
 }
