@@ -45,7 +45,25 @@ proc hetdb::read {filename} {
 }
 
 
-# varname is the name of the variable into which each row will be put
+# hetdb::for --
+#
+# Iterate over each row of a table.
+#
+# The break and continue statements may be invoked inside body, with the same
+# effect as in the ::for command.
+#
+# Arguments:
+#   db        The database that contains the table.
+#   tablename The name of the table.
+#   varname   The name of the variable that will be set to the contents of
+#             the row.  The contents of each row is a dictionary of fields
+#             and their values.
+#   body      The script which will be evaluated for each row of the table
+#             and will have varname set with the contents of each row.
+#
+# Results:
+#   None.
+#
 proc hetdb::for {db tablename varname body} {
   foreach e [dict get $db $tablename] {
     uplevel 1 [list set $varname $e]
