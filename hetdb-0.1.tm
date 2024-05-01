@@ -48,7 +48,7 @@ proc hetdb::read {filename} {
 # varname is the name of the variable into which each row will be put
 proc hetdb::for {db tablename varname body} {
   foreach e [dict get $db $tablename] {
-    uplevel [list set $varname $e]
+    uplevel 1 [list set $varname $e]
     # Exception handling within body from Tcl and the Tk Toolkit, 2nd Edition
     # Chapter 13 - Errors and Exceptions
     # Codes: 0 Normal return, 1 Error, 2 return command invoked
@@ -73,9 +73,9 @@ proc hetdb::forfields {db tablename fieldlist body} {
     foreach fieldspec $fieldlist {
       lassign $fieldspec fieldname varname
       if {$varname ne ""} {
-        uplevel [list set $varname [dict get $row $fieldname]]
+        uplevel 1 [list set $varname [dict get $row $fieldname]]
       } else {
-        uplevel [list set $fieldname [dict get $row $fieldname]]
+        uplevel 1 [list set $fieldname [dict get $row $fieldname]]
       }
     }
     # Exception handling within body from Tcl and the Tk Toolkit, 2nd Edition
