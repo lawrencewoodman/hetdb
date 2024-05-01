@@ -84,17 +84,39 @@ proc hetdb::for {db tablename varname body} {
 }
 
 
-# TODO: specify a prefix for fields rather than fieldname varname?
-# TODO: Rename? or add as a switch to ::for command
-proc hetdb::forfields {db tablename fieldlist body} {
+# hetdb::forfields
+#
+# Iterate over each row of a table.
+#
+# The break and continue statements may be invoked inside body, with the same
+# effect as in the ::for command.
+#
+# Arguments:
+#   db          The database that contains the table.
+#   tablename   The name of the table.
+#   fieldPrefix This is prefixed to each field to create the variables
+#               for each field specified in fields.
+#   fields      A list of fields whose values will retrevied for each row and
+#               variables will be set with their value.  The field variable
+#               names will consist of the field name prefixed with
+#               fieldPrefix.  It is an error to attempt to access a field
+#               which doesn't exist in a row.  Therefore, it is worth
+#               specifying any fields used by this procedure as mandatory
+#               and use the verify command to ensure they are present for
+#               all rows of a table.
+#   body        The script which will be evaluated for each row of the table
+#               and will have the fields requested set for each row.
+#
+# Results:
+#   None.
+#
+proc hetdb::forfields {db tablename fieldPrefix fields body} {
   foreach row [dict get $db $tablename] {
-    foreach fieldspec $fieldlist {
-      lassign $fieldspec fieldname varname
-      if {$varname ne ""} {
-        uplevel 1 [list set $varname [dict get $row $fieldname]]
-      } else {
-        uplevel 1 [list set $fieldname [dict get $row $fieldname]]
+    foreach fieldname $fields {
+      if {[catch {dict get $row $fieldname} val]} {
+        return -code error "unknown field in row: $fieldname"
       }
+      uplevel 1 [list set $fieldPrefix$fieldname $val]
     }
     # Exception handling within body from Tcl and the Tk Toolkit, 2nd Edition
     # Chapter 13 - Errors and Exceptions
