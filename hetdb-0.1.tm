@@ -45,7 +45,7 @@ proc hetdb::read {filename} {
 }
 
 
-# hetdb::for --
+# hetdb::for
 #
 # Iterate over each row of a table.
 #
