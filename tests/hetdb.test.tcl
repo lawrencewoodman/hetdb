@@ -26,46 +26,68 @@ test read-2 {Check raises error if can't load file} \
 
 test read-3 {Check raises error if outer db not valid dict} \
 -body {
-  set db [hetdb read [file join $FixturesDir outer_db_not_valid.hetdb]]
+  hetdb read [file join $FixturesDir outer_db_not_valid.hetdb]
 } -returnCodes {error} -result {outer structure of database not valid}
 
 
 test read-4 {Check raises error if table not valid list} \
 -body {
-  set db [hetdb read [file join $FixturesDir table_not_valid.hetdb]]
+  hetdb read [file join $FixturesDir table_not_valid.hetdb]
 } -returnCodes {error} -result {structure of table "tag" not valid}
 
 
 test read-5 {Check raises error if row not valid dict} \
 -body {
-  set db [hetdb read [file join $FixturesDir row_not_valid.hetdb]]
+  hetdb read [file join $FixturesDir row_not_valid.hetdb]
 } -returnCodes {error} -result {structure of row 1 in table "link" not valid}
 
 
-test verify-1 {Check valid database is verified as correct} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  hetdb verify $db
-} -result {true {}}
+test read-6 {Check raises error if _tabledef not valid list} \
+-body {
+  hetdb read [file join $FixturesDir _tabledef_not_valid.hetdb]
+} -returnCodes {error} -result {structure of table "_tabledef" not valid}
 
 
-# TODO: Rename tabledef?
-test verify-2 {Check 'unique' in tabledef identifies non unique fields and trims before comparing} \
--setup {
-  set db [hetdb read [file join $FixturesDir non_unique.hetdb]]
-} -body {
-  hetdb verify $db
-} -result {false {field "url" in table "link" isn't unique}}
+test read-7 {Check raises error if 'name' missing in _tabledef} \
+-body {
+  hetdb read [file join $FixturesDir _tabledef_missing_name.hetdb]
+} -returnCodes {error} -result {mandatory field "name" in table "_tabledef" is missing}
 
 
-# TODO: Rename tabledef?
-test verify-3 {Check 'mandatory' in tabledef identifies missing fields} \
--setup {
-  set db [hetdb read [file join $FixturesDir missing_mandatory.hetdb]]
-} -body {
-  hetdb verify $db
-} -result {false {mandatory field "title" in table "link" is missing}}
+test read-8 {Check raises error if 'name' isn't unique in _tabledef} \
+-body {
+  hetdb read [file join $FixturesDir _tabledef_non_unique_name.hetdb]
+} -returnCodes {error} -result {field "name" in table "_tabledef" isn't unique}
+
+
+test read-9 {Check raises error if '_tabledef' used as name _tabledef} \
+-body {
+  hetdb read [file join $FixturesDir _tabledef__tabledef_name.hetdb]
+} -returnCodes {error} -result {can't define "_tabledef" in table "_tabledef"}
+
+
+test read-10 {Check 'unique' in _tabledef identifies non unique fields and trims before comparing} \
+-body {
+  hetdb read [file join $FixturesDir non_unique.hetdb]
+} -returnCodes {error} -result {field "url" in table "link" isn't unique}
+
+
+test read-11 {Check 'mandatory' in _tabledef identifies missing fields} \
+-body {
+  hetdb read [file join $FixturesDir missing_mandatory.hetdb]
+} -returnCodes {error} -result {mandatory field "title" in table "link" is missing}
+
+
+test read-12 {Check raises error if a table name begins with '_' and isn't _tabledef} \
+-body {
+  hetdb read [file join $FixturesDir invalid_special_table_name.hetdb]
+} -returnCodes {error} -result {invalid table name "_something"}
+
+
+test read-13 {Check raises error if a table name is invalid} \
+-body {
+  hetdb read [file join $FixturesDir invalid_table_name.hetdb]
+} -returnCodes {error} -result {invalid table name "some-thing"}
 
 
 test for-1 {Check calls body script for each row of table} \

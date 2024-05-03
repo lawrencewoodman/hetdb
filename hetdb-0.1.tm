@@ -14,19 +14,21 @@ namespace eval hetdb {
 }
 
 
+# TODO: Document database format, tables, _tabledef and table names
+
+
 # hetdb::read
 #
 # Read an entire database from a text file.
 #
 # Arguments:
 #   filename  The name of a text file containing a database. It is an
-#             error to read a file which isn't a valid database.
+#             error to read a file which isn't a valid database and whose
+#             tables don't conform to any entries in _tabledef.
 #
 # Results:
 #   A database.
 #
-# TODO: Restrict table names beginning with '_' to a list
-# TODO: currently containing just 'tabledef'
 proc hetdb::read {filename} {
   set isErr [catch {
     set fd [open $filename r]
@@ -37,20 +39,9 @@ proc hetdb::read {filename} {
     return -code error $err
   }
 
-  if {![IsDict $db]} {
-    return -code error "outer structure of database not valid"
-  }
-  dict for {tablename rows} $db {
-    if {![string is list $rows]} {
-      return -code error "structure of table \"$tablename\" not valid"
-    }
-    set rowNum 0
-    foreach row $rows {
-      if {![IsDict $row]} {
-        return -code error "structure of row $rowNum in table \"$tablename\" not valid"
-      }
-      incr rowNum
-    }
+  set err [Verify $db]
+  if {$err ne {}} {
+    return -code error $err
   }
 
   return $db
@@ -77,6 +68,7 @@ proc hetdb::read {filename} {
 #   None.
 #
 proc hetdb::for {db tablename varname body} {
+  # TODO: handle tablename not exisiting
   foreach e [dict get $db $tablename] {
     uplevel 1 [list set $varname $e]
     # Exception handling within body from Tcl and the Tk Toolkit, 2nd Edition
@@ -123,6 +115,7 @@ proc hetdb::for {db tablename varname body} {
 #   None.
 #
 proc hetdb::forfields {db tablename fieldPrefix fields body} {
+  # TODO: handle tablename not exisiting
   foreach row [dict get $db $tablename] {
     foreach fieldname $fields {
       if {[catch {dict get $row $fieldname} val]} {
@@ -162,54 +155,134 @@ proc hetdb::forfields {db tablename fieldPrefix fields body} {
 #   A database with the table sorted using command.
 #
 proc hetdb::sort {db tablename command} {
+  # TODO: handle tablename not exisiting
   set tb [dict get $db $tablename]
   dict set db $tablename [lsort -command $command $tb]
 }
 
 
-# TODO: Rename?
 # DOCUMENT: Uses table '_tabledef' to verify database
 # DOCUMENT: Unique fields are trimmed while comparing
-proc hetdb::verify {db} {
-  hetdb::for $db _tabledef tabledef {
-    set tablename [dict get $tabledef name]
-    set mandatory [list]
-    set unique [list]
-    if {[dict exists $tabledef mandatory]} {
-      set mandatory [dict get $tabledef mandatory]
-    }
-    if {[dict exists $tabledef unique]} {
-      set unique [dict get $tabledef unique]
-      set uniques [dict create]
-      foreach ufield $unique {
-        dict set uniques $ufield [dict create]
-      }
-    }
-    hetdb::for $db $tablename row {
-      set keys [dict keys $row]
-      foreach mankey $mandatory {
-        if {$mankey ni $keys} {
-          return [list false "mandatory field \"$mankey\" in table \"$tablename\" is missing"]
-        }
-      }
-      foreach key $keys {
-        if {$key in $unique} {
-          set val [string trim [dict get $row $key]]
-          if {[dict exists $uniques $key $val]} {
-            return [list false "field \"$key\" in table \"$tablename\" isn't unique"]
-          } else {
-            dict set uniques $key $val 1
-          }
-        }
-      }
+# Verifies that a database is properly formed as are each of its tables
+proc hetdb::Verify {db} {
+  if {![IsDict $db]} {
+    return "outer structure of database not valid"
+  }
+
+  lassign [GetTabledef $db] tabledef err
+  if {$err ne {}} {
+    return $err
+  }
+
+  dict for {tablename rows} $db {
+    set err [VerifyTable $tabledef $tablename $rows]
+    if {$err ne ""} {
+      return $err
     }
   }
-  return {true {}}
+
+  return {}
+}
+
+
+# Verifies that table name contains only alpha-numeric characters and
+# underscore.  If it begins with underscore then it can only be _tabledef
+proc hetdb::VerifyTablename {tablename} {
+  set validSpecialNames {_tabledef}
+  if {[string match {_*} $tablename] && $tablename ni $validSpecialNames} {
+    return "invalid table name \"$tablename\""
+  }
+  if {![regexp -nocase {^[[:alnum:]_]*$} $tablename]} {
+    return "invalid table name \"$tablename\""
+  }
+  return {}
+}
+
+
+# Verifies that a table is properly formed and conforms to any definition
+# in _tabledef
+proc hetdb::VerifyTable {tabledef tablename rows} {
+  set err [VerifyTablename $tablename]
+  if {$err ne ""} {
+    return $err
+  }
+  if {![string is list $rows]} {
+    return "structure of table \"$tablename\" not valid"
+  }
+  set mandatory [MustDictGet $tabledef $tablename mandatory]
+  set unique [MustDictGet $tabledef $tablename unique]
+  set uniques [dict create]
+  foreach ufield $unique {
+    dict set uniques $ufield [dict create]
+  }
+
+  set rowNum 0
+  foreach row $rows {
+    if {![IsDict $row]} {
+      return "structure of row $rowNum in table \"$tablename\" not valid"
+    }
+    set keys [dict keys $row]
+    foreach mankey $mandatory {
+      if {$mankey ni $keys} {
+        return "mandatory field \"$mankey\" in table \"$tablename\" is missing"
+      }
+    }
+    foreach key $keys {
+      if {$key in $unique} {
+        set val [string trim [dict get $row $key]]
+        if {[dict exists $uniques $key $val]} {
+          return "field \"$key\" in table \"$tablename\" isn't unique"
+        } else {
+          dict set uniques $key $val 1
+        }
+      }
+    }
+    incr rowNum
+  }
+
+  return {}
+}
+
+
+# Return the _tabledef table as a dictionary using each name as a key
+# The table is return as the first element of a list, the second entry
+# is an error if present
+proc hetdb::GetTabledef {db} {
+  set ret [dict create]
+  set tabledefs [MustDictGet $db _tabledef]
+  set tabledefTabledef {_tabledef {mandatory name unique name}}
+  set err [VerifyTable $tabledefTabledef _tabledef $tabledefs]
+  if {$err ne ""} {
+    return [list {} $err]
+  }
+  foreach tabledef $tabledefs {
+    set tablename [dict get $tabledef name]
+    if {$tablename eq "_tabledef"} {
+      return [list {} "can't define \"_tabledef\" in table \"_tabledef\""]
+    }
+    dict set ret $tablename mandatory [MustDictGet $tabledef mandatory]
+    dict set ret $tablename unique [MustDictGet $tabledef unique]
+  }
+
+  return [list $ret {}]
 }
 
 
 # Returns whether value is a valid dictionary
 proc hetdb::IsDict value {
   expr {![catch {dict size $value}]}
+}
+
+
+# Return the value for the key/key chain in dictionary or {}
+proc hetdb::MustDictGet {dict args} {
+  if {[llength $args] < 1} {
+    return -code "invalid number of arguments"
+  }
+  set keys $args
+  if {[dict exists $dict {*}$keys]} {
+    return [dict get $dict {*}$keys]
+  }
+  return {}
 }
 
