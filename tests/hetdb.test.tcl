@@ -46,7 +46,7 @@ test verify-1 {Check valid database is verified as correct} \
 -setup {
   set db [hetdb read [file join $FixturesDir complete.hetdb]]
 } -body {
-  hetdb verify $db tabledef
+  hetdb verify $db
 } -result {true {}}
 
 
@@ -55,7 +55,7 @@ test verify-2 {Check 'unique' in tabledef identifies non unique fields and trims
 -setup {
   set db [hetdb read [file join $FixturesDir non_unique.hetdb]]
 } -body {
-  hetdb verify $db tabledef
+  hetdb verify $db
 } -result {false {field "url" in table "link" isn't unique}}
 
 
@@ -64,7 +64,7 @@ test verify-3 {Check 'mandatory' in tabledef identifies missing fields} \
 -setup {
   set db [hetdb read [file join $FixturesDir missing_mandatory.hetdb]]
 } -body {
-  hetdb verify $db tabledef
+  hetdb verify $db
 } -result {false {mandatory field "title" in table "link" is missing}}
 
 

@@ -25,6 +25,8 @@ namespace eval hetdb {
 # Results:
 #   A database.
 #
+# TODO: Restrict table names beginning with '_' to a list
+# TODO: currently containing just 'tabledef'
 proc hetdb::read {filename} {
   set isErr [catch {
     set fd [open $filename r]
@@ -166,9 +168,10 @@ proc hetdb::sort {db tablename command} {
 
 
 # TODO: Rename?
-# DOCUMENT: Unique fields are trimmed before comparing
-proc hetdb::verify {db tabledefname} {
-  hetdb::for $db $tabledefname tabledef {
+# DOCUMENT: Uses table '_tabledef' to verify database
+# DOCUMENT: Unique fields are trimmed while comparing
+proc hetdb::verify {db} {
+  hetdb::for $db _tabledef tabledef {
     set tablename [dict get $tabledef name]
     set mandatory [list]
     set unique [list]

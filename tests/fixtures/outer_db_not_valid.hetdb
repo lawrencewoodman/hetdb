@@ -1,6 +1,7 @@
-tabledef {
+_tabledef {
   {name tag mandatory {name title}}
   {name link unique url mandatory {url title tags}}
+
 
 tag {
   {name cooking title {How to Cook} main true}
