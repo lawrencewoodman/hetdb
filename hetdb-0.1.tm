@@ -14,7 +14,12 @@ namespace eval hetdb {
 }
 
 
+# ---------------------------------------------------------------------------
+# A valid database
+# TODO: Uses table '_tabledef' to verify database
+# TODO: Unique fields are trimmed while comparing
 # TODO: Document database format, tables, _tabledef and table names
+# ---------------------------------------------------------------------------
 
 
 # hetdb::read
@@ -39,7 +44,7 @@ proc hetdb::read {filename} {
     return -code error $err
   }
 
-  set err [Verify $db]
+  set err [verify $db]
   if {$err ne {}} {
     return -code error $err
   }
@@ -161,10 +166,18 @@ proc hetdb::sort {db tablename command} {
 }
 
 
-# DOCUMENT: Uses table '_tabledef' to verify database
-# DOCUMENT: Unique fields are trimmed while comparing
-# Verifies that a database is properly formed as are each of its tables
-proc hetdb::Verify {db} {
+# hetdb::verify
+#
+# Verify that a database is properly formed as are each of its tables.
+# Each table must conform to any entries in the table _tabledef.
+#
+# Arguments:
+#   db  The database to verify.
+#
+# Results:
+#   An error string or {} if everything is correct.
+#
+proc hetdb::verify {db} {
   if {![IsDict $db]} {
     return "outer structure of database not valid"
   }
