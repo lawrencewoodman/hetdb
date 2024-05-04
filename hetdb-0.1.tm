@@ -123,10 +123,10 @@ proc hetdb::forfields {db tablename fieldPrefix fields body} {
   # TODO: handle tablename not exisiting
   foreach row [dict get $db $tablename] {
     foreach fieldname $fields {
-      if {[catch {dict get $row $fieldname} val]} {
+      if {![dict exists $row $fieldname]} {
         return -code error "field \"$fieldname\" missing from row"
       }
-      uplevel 1 [list set $fieldPrefix$fieldname $val]
+      uplevel 1 [list set $fieldPrefix$fieldname [dict get $row $fieldname]]
     }
     # Exception handling within body from Tcl and the Tk Toolkit, 2nd Edition
     # Chapter 13 - Errors and Exceptions
