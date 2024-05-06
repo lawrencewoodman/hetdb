@@ -14,13 +14,35 @@ namespace eval hetdb {
 }
 
 
-# ---------------------------------------------------------------------------
-# A valid database
-# TODO: Uses table '_tabledef' to validate database
-# TODO: Unique fields are trimmed while comparing
-# TODO: Document database format, tables, _tabledef and table names
-# ---------------------------------------------------------------------------
+# ============================================================================
+#
+# Database Format
+# ---------------
+#
+# A valid database is a Tcl dictionary where each key is a table name and the
+# value is the contents of the table.
+#
+# Each table is a Tcl list where each element of the list is a row of the
+# table.  Each row of the table is a Tcl dictionary where each key is a field
+# and each value is the value of that field.
+#
+# Table names must only consist alphanumeric or '_' characters.  A table name
+# must not start with a '_' unless it is the '_tabledef' table described
+# below.
+#
+# The '_tabledef' table is an optional table used to describe tables.  If
+# present the database is checked against this to ensure that it is valid.
+# Each row describes one table using the following fields:
+#   name       The name of the table being described.
+#   unique     A list of fields to check for all the rows to ensure that no
+#              two rows have the same value for a field.  When comparing
+#              values the strings are trimmed.
+#   mandatory  A list of fields that must be present in each row of a table.
+#
+# ============================================================================
 
+
+# TODO: Restrict valid field names
 
 # hetdb::read
 #
@@ -29,7 +51,7 @@ namespace eval hetdb {
 # Arguments:
 #   filename  The name of a text file containing a database. It is an
 #             error to read a file which isn't a valid database and whose
-#             tables don't conform to any entries in _tabledef.
+#             tables don't conform to any entries in '_tabledef'.
 #
 # Results:
 #   A database.
@@ -180,7 +202,7 @@ proc hetdb::sort {db tablename command} {
 # hetdb::validate
 #
 # Validate that a database is properly formed as are each of its tables.
-# Each table must conform to any entries in the table _tabledef.
+# Each table must conform to any entries in the table '_tabledef'.
 #
 # Arguments:
 #   db  The database to validate.
@@ -210,13 +232,13 @@ proc hetdb::validate {db} {
 
 
 # Checks that table name contains only alpha-numeric characters and
-# underscore.  If it begins with underscore then it can only be _tabledef
+# underscore.  If it begins with underscore then it can only be '_tabledef'
 proc hetdb::ValidateTablename {tablename} {
   set validSpecialNames {_tabledef}
   if {[string match {_*} $tablename] && $tablename ni $validSpecialNames} {
     return "invalid table name \"$tablename\""
   }
-  if {![regexp -nocase {^[[:alnum:]_]*$} $tablename]} {
+  if {![regexp -nocase {^[[:alnum:]_]+$} $tablename]} {
     return "invalid table name \"$tablename\""
   }
   return {}
@@ -224,7 +246,7 @@ proc hetdb::ValidateTablename {tablename} {
 
 
 # Checks that a table is properly formed and conforms to any definition
-# in _tabledef
+# in '_tabledef'
 proc hetdb::ValidateTable {tabledef tablename rows} {
   set err [ValidateTablename $tablename]
   if {$err ne ""} {
@@ -268,7 +290,7 @@ proc hetdb::ValidateTable {tabledef tablename rows} {
 }
 
 
-# Return the _tabledef table as a dictionary using each name as a key
+# Return the '_tabledef' table as a dictionary using each name as a key
 # The table is return as the first element of a list, the second entry
 # is an error if present
 proc hetdb::GetTabledef {db} {
