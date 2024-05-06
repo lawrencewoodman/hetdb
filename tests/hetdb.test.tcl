@@ -11,7 +11,7 @@ source [lindex $modules 0]
 
 
 # The following tests for read should be kept in sync with the
-#  verify tests below
+#  validate tests below
 test read-1 {Check a valid database is loaded correctly} \
 -body {
   set db [hetdb read [file join $FixturesDir complete.hetdb]]
@@ -92,137 +92,137 @@ test read-13 {Check raises error if a table name is invalid} \
 } -returnCodes {error} -result {invalid table name "some-thing"}
 
 
-# The following tests for verify should be kept in sync with the read tests
-# above therefore verify-2 isn't present below
-test verify-1 {Check a valid database returns a blank string} \
+# The following tests for validate should be kept in sync with the read tests
+# above therefore validate-2 isn't present below
+test validate-1 {Check a valid database returns a blank string} \
 -setup {
     set filename [file join $FixturesDir complete.hetdb]
     set fd [open $filename r]
     set db [::read $fd]
     close $fd
  } -body {
-  hetdb verify $db
+  hetdb validate $db
 } -result {}
 
 
-test verify-3 {Check raises error if outer db not valid dict} \
+test validate-3 {Check raises error if outer db not valid dict} \
 -setup {
     set filename [file join $FixturesDir outer_db_not_valid.hetdb]
     set fd [open $filename r]
     set db [::read $fd]
     close $fd
  } -body {
-  hetdb verify $db
+  hetdb validate $db
 } -result {outer structure of database not valid}
 
 
-test verify-4 {Check raises error if table not valid list} \
+test validate-4 {Check raises error if table not valid list} \
 -setup {
     set filename [file join $FixturesDir table_not_valid.hetdb]
     set fd [open $filename r]
     set db [::read $fd]
     close $fd
  } -body {
-  hetdb verify $db
+  hetdb validate $db
 } -result {structure of table "tag" not valid}
 
 
-test verify-5 {Check raises error if row not valid dict} \
+test validate-5 {Check raises error if row not valid dict} \
 -setup {
     set filename [file join $FixturesDir row_not_valid.hetdb]
     set fd [open $filename r]
     set db [::read $fd]
     close $fd
  } -body {
-  hetdb verify $db
+  hetdb validate $db
 } -result {structure of row 1 in table "link" not valid}
 
 
-test verify-6 {Check raises error if _tabledef not valid list} \
+test validate-6 {Check raises error if _tabledef not valid list} \
 -setup {
     set filename [file join $FixturesDir _tabledef_not_valid.hetdb]
     set fd [open $filename r]
     set db [::read $fd]
     close $fd
  } -body {
-  hetdb verify $db
+  hetdb validate $db
 } -result {structure of table "_tabledef" not valid}
 
 
-test verify-7 {Check raises error if 'name' missing in _tabledef} \
+test validate-7 {Check raises error if 'name' missing in _tabledef} \
 -setup {
     set filename [file join $FixturesDir _tabledef_missing_name.hetdb]
     set fd [open $filename r]
     set db [::read $fd]
     close $fd
  } -body {
-  hetdb verify $db
+  hetdb validate $db
 } -result {mandatory field "name" in table "_tabledef" is missing}
 
 
-test verify-8 {Check raises error if 'name' isn't unique in _tabledef} \
+test validate-8 {Check raises error if 'name' isn't unique in _tabledef} \
 -setup {
     set filename [file join $FixturesDir _tabledef_non_unique_name.hetdb]
     set fd [open $filename r]
     set db [::read $fd]
     close $fd
  } -body {
-  hetdb verify $db
+  hetdb validate $db
 } -result {field "name" in table "_tabledef" isn't unique}
 
 
-test verify-9 {Check raises error if '_tabledef' used as name _tabledef} \
+test validate-9 {Check raises error if '_tabledef' used as name _tabledef} \
 -setup {
     set filename [file join $FixturesDir _tabledef__tabledef_name.hetdb]
     set fd [open $filename r]
     set db [::read $fd]
     close $fd
  } -body {
-  hetdb verify $db
+  hetdb validate $db
 } -result {can't define "_tabledef" in table "_tabledef"}
 
 
-test verify-10 {Check 'unique' in _tabledef identifies non unique fields and trims before comparing} \
+test validate-10 {Check 'unique' in _tabledef identifies non unique fields and trims before comparing} \
 -setup {
     set filename [file join $FixturesDir non_unique.hetdb]
     set fd [open $filename r]
     set db [::read $fd]
     close $fd
  } -body {
-  hetdb verify $db
+  hetdb validate $db
 } -result {field "url" in table "link" isn't unique}
 
 
-test verify-11 {Check 'mandatory' in _tabledef identifies missing fields} \
+test validate-11 {Check 'mandatory' in _tabledef identifies missing fields} \
 -setup {
     set filename [file join $FixturesDir missing_mandatory.hetdb]
     set fd [open $filename r]
     set db [::read $fd]
     close $fd
  } -body {
-  hetdb verify $db
+  hetdb validate $db
 } -result {mandatory field "title" in table "link" is missing}
 
 
-test verify-12 {Check raises error if a table name begins with '_' and isn't _tabledef} \
+test validate-12 {Check raises error if a table name begins with '_' and isn't _tabledef} \
 -setup {
     set filename [file join $FixturesDir invalid_special_table_name.hetdb]
     set fd [open $filename r]
     set db [::read $fd]
     close $fd
  } -body {
-  hetdb verify $db
+  hetdb validate $db
 } -result {invalid table name "_something"}
 
 
-test verify-13 {Check raises error if a table name is invalid} \
+test validate-13 {Check raises error if a table name is invalid} \
 -setup {
     set filename [file join $FixturesDir invalid_table_name.hetdb]
     set fd [open $filename r]
     set db [::read $fd]
     close $fd
  } -body {
-  hetdb verify $db
+  hetdb validate $db
 } -result {invalid table name "some-thing"}
 
 

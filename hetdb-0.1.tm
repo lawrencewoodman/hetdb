@@ -16,7 +16,7 @@ namespace eval hetdb {
 
 # ---------------------------------------------------------------------------
 # A valid database
-# TODO: Uses table '_tabledef' to verify database
+# TODO: Uses table '_tabledef' to validate database
 # TODO: Unique fields are trimmed while comparing
 # TODO: Document database format, tables, _tabledef and table names
 # ---------------------------------------------------------------------------
@@ -44,7 +44,7 @@ proc hetdb::read {filename} {
     return -code error $err
   }
 
-  set err [verify $db]
+  set err [validate $db]
   if {$err ne {}} {
     return -code error $err
   }
@@ -111,7 +111,7 @@ proc hetdb::for {db tablename varname body} {
 #               fieldPrefix.  It is an error to attempt to access a field
 #               which doesn't exist in a row.  Therefore, it is worth
 #               specifying any fields used by this procedure as mandatory
-#               and use the verify command to ensure they are present for
+#               and use the validate command to ensure they are present for
 #               all rows of a table.
 #   body        The script which will be evaluated for each row of the table
 #               and will have the fields requested set for each row.
@@ -166,18 +166,18 @@ proc hetdb::sort {db tablename command} {
 }
 
 
-# hetdb::verify
+# hetdb::validate
 #
-# Verify that a database is properly formed as are each of its tables.
+# Validate that a database is properly formed as are each of its tables.
 # Each table must conform to any entries in the table _tabledef.
 #
 # Arguments:
-#   db  The database to verify.
+#   db  The database to validate.
 #
 # Results:
 #   An error string or {} if everything is correct.
 #
-proc hetdb::verify {db} {
+proc hetdb::validate {db} {
   if {![IsDict $db]} {
     return "outer structure of database not valid"
   }
@@ -188,7 +188,7 @@ proc hetdb::verify {db} {
   }
 
   dict for {tablename rows} $db {
-    set err [VerifyTable $tabledef $tablename $rows]
+    set err [ValidateTable $tabledef $tablename $rows]
     if {$err ne ""} {
       return $err
     }
@@ -200,7 +200,7 @@ proc hetdb::verify {db} {
 
 # Verifies that table name contains only alpha-numeric characters and
 # underscore.  If it begins with underscore then it can only be _tabledef
-proc hetdb::VerifyTablename {tablename} {
+proc hetdb::ValidateTablename {tablename} {
   set validSpecialNames {_tabledef}
   if {[string match {_*} $tablename] && $tablename ni $validSpecialNames} {
     return "invalid table name \"$tablename\""
@@ -214,8 +214,8 @@ proc hetdb::VerifyTablename {tablename} {
 
 # Verifies that a table is properly formed and conforms to any definition
 # in _tabledef
-proc hetdb::VerifyTable {tabledef tablename rows} {
-  set err [VerifyTablename $tablename]
+proc hetdb::ValidateTable {tabledef tablename rows} {
+  set err [ValidateTablename $tablename]
   if {$err ne ""} {
     return $err
   }
@@ -264,7 +264,7 @@ proc hetdb::GetTabledef {db} {
   set ret [dict create]
   set tabledefs [MustDictGet $db _tabledef]
   set tabledefTabledef {_tabledef {mandatory name unique name}}
-  set err [VerifyTable $tabledefTabledef _tabledef $tabledefs]
+  set err [ValidateTable $tabledefTabledef _tabledef $tabledefs]
   if {$err ne ""} {
     return [list {} $err]
   }
