@@ -323,6 +323,15 @@ test for-5 {Check continue is handled within body script} \
                 {name article title {An Article} main false}]
 
 
+test for-6 {Check will raise an error if a table doesn't exist} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  hetdb for $db unknown unknown {
+  }
+} -returnCodes {error} -result {unknown table "unknown" in database}
+
+
 test forfields-1 {Check calls body script for each row of table} \
 -setup {
   set db [hetdb read [file join $FixturesDir complete.hetdb]]
@@ -431,10 +440,20 @@ test forfields-6 {Check continue is handled within body script} \
                 {article {An Article}}]
 
 
+test forfields-7 {Check will raise an error if a table doesn't exist} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  hetdb forfields $db unknown "unknown_" {name title} {
+  }
+} -returnCodes {error} -result {unknown table "unknown" in database}
+
+
 # Used by sort-1 to compare entries in the tag table
 proc CompareTag {a b} {
   string compare [dict get $a name] [dict get $b name]
 }
+
 
 test sort-1 {Check will return a sorted table} \
 -setup {
@@ -451,6 +470,13 @@ test sort-1 {Check will return a sorted table} \
              {name cooking title {How to Cook} main true} \
              {name mechanics title {How to Make Things} main true}]]
 
+
+test sort-2 {Check will raise an error if a table doesn't exist} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  hetdb sort $db unknown CompareTag
+} -returnCodes {error} -result {unknown table "unknown" in database}
 
 
 cleanupTests

@@ -62,7 +62,8 @@ proc hetdb::read {filename} {
 #
 # Arguments:
 #   db        The database that contains the table.
-#   tablename The name of the table.
+#   tablename The name of the table.  It is an error to attempt to access
+#             a table that doesn't exist within the database.
 #   varname   The name of the variable that will be set to the contents of
 #             the row.  The contents of each row is a dictionary of fields
 #             and their values.
@@ -73,7 +74,9 @@ proc hetdb::read {filename} {
 #   None.
 #
 proc hetdb::for {db tablename varname body} {
-  # TODO: handle tablename not exisiting
+  if {![dict exists $db $tablename]} {
+    return -code error "unknown table \"$tablename\" in database"
+  }
   foreach e [dict get $db $tablename] {
     uplevel 1 [list set $varname $e]
     # Exception handling within body from Tcl and the Tk Toolkit, 2nd Edition
@@ -102,7 +105,8 @@ proc hetdb::for {db tablename varname body} {
 #
 # Arguments:
 #   db          The database that contains the table.
-#   tablename   The name of the table.
+#   tablename   The name of the table.  It is an error to attempt to access
+#               a table that doesn't exist within the database.
 #   fieldPrefix This is prefixed to each field to create the variables
 #               for each field specified in fields.
 #   fields      A list of fields whose values will retrieved for each row and
@@ -120,7 +124,9 @@ proc hetdb::for {db tablename varname body} {
 #   None.
 #
 proc hetdb::forfields {db tablename fieldPrefix fields body} {
-  # TODO: handle tablename not exisiting
+  if {![dict exists $db $tablename]} {
+    return -code error "unknown table \"$tablename\" in database"
+  }
   foreach row [dict get $db $tablename] {
     foreach fieldname $fields {
       if {![dict exists $row $fieldname]} {
@@ -160,8 +166,11 @@ proc hetdb::forfields {db tablename fieldPrefix fields body} {
 #   A database with the table sorted using command.
 #
 proc hetdb::sort {db tablename command} {
-  # TODO: handle tablename not exisiting
+  if {![dict exists $db $tablename]} {
+    return -code error "unknown table \"$tablename\" in database"
+  }
   set tb [dict get $db $tablename]
+  # TODO: catch and raise error if command raises an error
   dict set db $tablename [lsort -command $command $tb]
 }
 
