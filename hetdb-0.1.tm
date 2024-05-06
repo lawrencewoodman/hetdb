@@ -170,8 +170,10 @@ proc hetdb::sort {db tablename command} {
     return -code error "unknown table \"$tablename\" in database"
   }
   set tb [dict get $db $tablename]
-  # TODO: catch and raise error if command raises an error
-  dict set db $tablename [lsort -command $command $tb]
+  if {[catch {lsort -command $command $tb} res]} {
+    return -code error $res
+  }
+  dict set db $tablename $res
 }
 
 

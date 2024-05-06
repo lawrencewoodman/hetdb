@@ -449,7 +449,7 @@ test forfields-7 {Check will raise an error if a table doesn't exist} \
 } -returnCodes {error} -result {unknown table "unknown" in database}
 
 
-# Used by sort-1 to compare entries in the tag table
+# Used by sort-1 and sort-2 to compare entries in the tag table
 proc CompareTag {a b} {
   string compare [dict get $a name] [dict get $b name]
 }
@@ -477,6 +477,20 @@ test sort-2 {Check will raise an error if a table doesn't exist} \
 } -body {
   hetdb sort $db unknown CompareTag
 } -returnCodes {error} -result {unknown table "unknown" in database}
+
+
+# Used by sort-3 to compare entries in a table but raises and error
+proc CompareTag_with_error {a b} {
+  error "this is an error"
+}
+
+
+test sort-3 {Check will raise an error if the command raises an error} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  hetdb sort $db tag CompareTag_with_error
+} -returnCodes {error} -result {this is an error}
 
 
 cleanupTests
