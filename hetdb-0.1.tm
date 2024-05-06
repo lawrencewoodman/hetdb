@@ -209,7 +209,7 @@ proc hetdb::validate {db} {
 }
 
 
-# Verifies that table name contains only alpha-numeric characters and
+# Checks that table name contains only alpha-numeric characters and
 # underscore.  If it begins with underscore then it can only be _tabledef
 proc hetdb::ValidateTablename {tablename} {
   set validSpecialNames {_tabledef}
@@ -223,7 +223,7 @@ proc hetdb::ValidateTablename {tablename} {
 }
 
 
-# Verifies that a table is properly formed and conforms to any definition
+# Checks that a table is properly formed and conforms to any definition
 # in _tabledef
 proc hetdb::ValidateTable {tabledef tablename rows} {
   set err [ValidateTablename $tablename]
