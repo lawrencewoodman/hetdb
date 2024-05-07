@@ -92,6 +92,12 @@ test read-13 {Check raises error if a table name is invalid} \
 } -returnCodes {error} -result {invalid table name "some-thing"}
 
 
+test read-14 {Check raises error if a field name is invalid} \
+-body {
+  hetdb read [file join $FixturesDir invalid_field_name.hetdb]
+} -returnCodes {error} -result {invalid field name "some-thing" in table "link"}
+
+
 # The following tests for validate should be kept in sync with the read tests
 # above therefore validate-2 isn't present below
 test validate-1 {Check a valid database returns a blank string} \
@@ -217,13 +223,63 @@ test validate-12 {Check raises error if a table name begins with '_' and isn't _
 
 test validate-13 {Check raises error if a table name is invalid} \
 -setup {
-    set filename [file join $FixturesDir invalid_table_name.hetdb]
-    set fd [open $filename r]
-    set db [::read $fd]
-    close $fd
+  set filename [file join $FixturesDir invalid_table_name.hetdb]
+  set fd [open $filename r]
+  set templatedb [::read $fd]
+  close $fd
+  # A list of table names to switch some-thing for to test against
+  set testTablenames {
+    some-thing
+    _tabledef
+    _borris
+    a
+    a_b
+    hello_goodbye_again
+    a_
+    today_is_
+  }
  } -body {
-  hetdb validate $db
-} -result {invalid table name "some-thing"}
+  set got [list]
+  foreach testname $testTablenames {
+    set db [string map [list some-thing $testname] $templatedb]
+    lappend got [hetdb validate $db]
+  }
+  set got
+} -result [list {invalid table name "some-thing"} {} \
+                {invalid table name "_borris"} {} {} {} \
+                {invalid table name "a_"} \
+                {invalid table name "today_is_"}]
+
+
+test validate-14 {Check raises error if a field name is invalid} \
+-setup {
+    set filename [file join $FixturesDir invalid_field_name.hetdb]
+    set fd [open $filename r]
+    set templatedb [::read $fd]
+    close $fd
+  # A list of field names to switch some-thing for to test against
+  set testTablenames {
+    some-thing
+    _tabledef
+    _borris
+    a
+    a_b
+    hello_goodbye_again
+    a_
+    today_is_
+  }
+ } -body {
+  set got [list]
+  foreach testname $testTablenames {
+    set db [string map [list some-thing $testname] $templatedb]
+    lappend got [hetdb validate $db]
+  }
+  set got
+} -result [list {invalid field name "some-thing" in table "link"} \
+                {invalid field name "_tabledef" in table "link"} \
+                {invalid field name "_borris" in table "link"} {} {} {} \
+                {invalid field name "a_" in table "link"} \
+                {invalid field name "today_is_" in table "link"}]
 
 
 test for-1 {Check calls body script for each row of table} \

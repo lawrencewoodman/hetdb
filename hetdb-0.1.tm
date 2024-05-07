@@ -28,7 +28,10 @@ namespace eval hetdb {
 #
 # Table names must only consist alphanumeric or '_' characters.  A table name
 # must not start with a '_' unless it is the '_tabledef' table described
-# below.
+# below.  A table name must not end with a '_'.
+#
+# Field names must only consist alphanumeric or '_' characters.  A field name
+# must not start with a '_' or end with a '_'.
 #
 # The '_tabledef' table is an optional table used to describe tables.  If
 # present the database is checked against this to ensure that it is valid.
@@ -42,7 +45,6 @@ namespace eval hetdb {
 # ============================================================================
 
 
-# TODO: Restrict valid field names
 
 # hetdb::read
 #
@@ -232,25 +234,43 @@ proc hetdb::validate {db} {
 
 
 # Checks that table name contains only alpha-numeric characters and
-# underscore.  If it begins with underscore then it can only be '_tabledef'
-proc hetdb::ValidateTablename {tablename} {
+# '_'.  If it begins with '_' then it can only be '_tabledef'.  It
+# must not end with a '_'.
+# Returns true if tablename is valid or false if not
+proc hetdb::IsValidTablename {tablename} {
   set validSpecialNames {_tabledef}
-  if {[string match {_*} $tablename] && $tablename ni $validSpecialNames} {
-    return "invalid table name \"$tablename\""
+  if {$tablename in $validSpecialNames} {
+    return true
   }
-  if {![regexp -nocase {^[[:alnum:]_]+$} $tablename]} {
-    return "invalid table name \"$tablename\""
+  if {[string match {*_} $tablename]} {
+    return false
   }
-  return {}
+  if {[regexp -nocase {^[[:alnum:]][[:alnum:]_]*$} $tablename]} {
+    return true
+  }
+  return false
+}
+
+
+# Checks that field name contains only alpha-numeric characters and
+# '_'.  It must not begin or end with a '_'.
+# Returns true if fieldname is valid or false if not
+proc hetdb::IsValidFieldname {fieldname} {
+  if {[string match {*_} $fieldname]} {
+    return false
+  }
+  if {[regexp -nocase {^[[:alnum:]][[:alnum:]_]*$} $fieldname]} {
+    return true
+  }
+  return false
 }
 
 
 # Checks that a table is properly formed and conforms to any definition
 # in '_tabledef'
 proc hetdb::ValidateTable {tabledef tablename rows} {
-  set err [ValidateTablename $tablename]
-  if {$err ne ""} {
-    return $err
+  if {![IsValidTablename $tablename]} {
+    return "invalid table name \"$tablename\""
   }
   if {![string is list $rows]} {
     return "structure of table \"$tablename\" not valid"
@@ -267,19 +287,22 @@ proc hetdb::ValidateTable {tabledef tablename rows} {
     if {![IsDict $row]} {
       return "structure of row $rowNum in table \"$tablename\" not valid"
     }
-    set keys [dict keys $row]
+    set fields [dict keys $row]
     foreach mankey $mandatory {
-      if {$mankey ni $keys} {
+      if {$mankey ni $fields} {
         return "mandatory field \"$mankey\" in table \"$tablename\" is missing"
       }
     }
-    foreach key $keys {
-      if {$key in $unique} {
-        set val [string trim [dict get $row $key]]
-        if {[dict exists $uniques $key $val]} {
-          return "field \"$key\" in table \"$tablename\" isn't unique"
+    foreach field $fields {
+      if {![IsValidFieldname $field]} {
+        return "invalid field name \"$field\" in table \"$tablename\""
+      }
+      if {$field in $unique} {
+        set val [string trim [dict get $row $field]]
+        if {[dict exists $uniques $field $val]} {
+          return "field \"$field\" in table \"$tablename\" isn't unique"
         } else {
-          dict set uniques $key $val 1
+          dict set uniques $field $val 1
         }
       }
     }
