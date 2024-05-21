@@ -287,7 +287,138 @@ test for-1 {Check calls body script for each row of table} \
   set db [hetdb read [file join $FixturesDir complete.hetdb]]
 } -body {
   set rows [list]
-  hetdb for $db tag tag {
+  hetdb for $db tag {name title} tag {
+    lappend rows $tag
+  }
+  set rows
+} -result [list {name cooking title {How to Cook}} \
+                {name mechanics title {How to Make Things}} \
+                {name article title {An Article}}]
+
+
+test for-2 {Check can handle field missing in row} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete_extra_field_in_tag.hetdb]]
+} -body {
+  set rows [list]
+  hetdb for $db tag {name title priority} tag {
+    lappend rows [dict values $tag]
+  }
+  set rows
+} -returnCodes {error} -result {field "priority" missing from row}
+
+#
+# Used by for-3 to check error handled
+proc Hetdb_for_with_error {db tablename} {
+  set compLevel [info level]
+  set rowNum 0
+  set isErr [catch {
+    hetdb for $db tag {name title} tag {
+      if {$rowNum == 2} {
+        error "this is an error from for-3"
+      }
+      incr rowNum
+    }
+  } err options]
+  list $isErr $err [dict get $options -level] $compLevel
+}
+
+test for-3 {Check error is handled within body script} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  {*}Hetdb_for_with_error $db tag
+} -result {1 {this is an error from for-3} 0 1}
+
+
+# Used by for-4 to check return handled
+proc Hetdb_for_with_return {db tablename} {
+  set compLevel [info level]
+  set rowNum 0
+  set code [catch {
+    hetdb for $db tag {name title} tag {
+      if {$rowNum == 2} {
+        return "this is a return from for-4"
+      }
+      incr rowNum
+    }
+  } res options]
+  list $code $res [dict get $options -level] $compLevel
+}
+
+test for-4 {Check return is handled within body script} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  {*}Hetdb_for_with_return $db tag
+} -result {2 {this is a return from for-4} 1 1}
+
+
+test for-5 {Check break is handled within body script} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  set rows [list]
+  set rowNum 0
+  hetdb for $db tag {name title} tag {
+    if {$rowNum == 2} {
+      break
+    }
+    lappend rows $tag
+    incr rowNum
+  }
+  set rows
+} -result [list {name cooking title {How to Cook}} \
+                {name mechanics title {How to Make Things}}]
+
+
+test for-6 {Check continue is handled within body script} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  set rows [list]
+  set rowNum 0
+  hetdb for $db tag {name title} tag {
+    incr rowNum
+    if {$rowNum == 2} {
+      continue
+    }
+    lappend rows $tag
+  }
+  set rows
+} -result [list {name cooking title {How to Cook}} \
+                {name article title {An Article}}]
+
+
+test for-7 {Check will raise an error if a table doesn't exist} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  hetdb for $db unknown {name title} tag {
+  }
+} -returnCodes {error} -result {unknown table "unknown" in database}
+
+
+test for-8 {Check that the order of fiels is used in the row return} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  set rows [list]
+  hetdb for $db tag {title name} tag {
+    lappend rows $tag
+  }
+  set rows
+} -result [list {title {How to Cook} name cooking} \
+                {title {How to Make Things} name mechanics} \
+                {title {An Article} name article}]
+
+
+test for-9 {Check that * for fields returns all fields} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  set rows [list]
+  hetdb for $db tag {*} tag {
     lappend rows $tag
   }
   set rows
@@ -295,214 +426,6 @@ test for-1 {Check calls body script for each row of table} \
                 {name mechanics title {How to Make Things} main true} \
                 {name article title {An Article} main false}]
 
-
-# Used by for-2 to check error handled
-proc Hetdb_for_with_error {db tablename} {
-  set compLevel [info level]
-  set rowNum 0
-  set isErr [catch {
-    hetdb for $db tag tag {
-      if {$rowNum == 2} {
-        error "this is an error from for-2"
-      }
-      incr rowNum
-    }
-  } err options]
-  list $isErr $err [dict get $options -level] $compLevel
-}
-
-test for-2 {Check error is handled within body script} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  {*}Hetdb_for_with_error $db tag
-} -result {1 {this is an error from for-2} 0 1}
-
-
-# Used by for-3 to check return handled
-proc Hetdb_for_with_return {db tablename} {
-  set compLevel [info level]
-  set rowNum 0
-  set code [catch {
-    hetdb for $db tag tag {
-      if {$rowNum == 2} {
-        return "this is a return from for-3"
-      }
-      incr rowNum
-    }
-  } res options]
-  list $code $res [dict get $options -level] $compLevel
-}
-
-
-test for-3 {Check return is handled within body script} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  {*}Hetdb_for_with_return $db tag
-} -result {2 {this is a return from for-3} 1 1}
-
-
-test for-4 {Check break is handled within body script} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  set rows [list]
-  set rowNum 0
-  hetdb for $db tag tag {
-    if {$rowNum == 2} {
-      break
-    }
-    lappend rows $tag
-    incr rowNum
-  }
-  set rows
-} -result [list {name cooking title {How to Cook} main true} \
-                {name mechanics title {How to Make Things} main true}]
-
-
-test for-5 {Check continue is handled within body script} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  set rows [list]
-  set rowNum 0
-  hetdb for $db tag tag {
-    incr rowNum
-    if {$rowNum == 2} {
-      continue
-    }
-    lappend rows $tag
-  }
-  set rows
-} -result [list {name cooking title {How to Cook} main true} \
-                {name article title {An Article} main false}]
-
-
-test for-6 {Check will raise an error if a table doesn't exist} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  hetdb for $db unknown unknown {
-  }
-} -returnCodes {error} -result {unknown table "unknown" in database}
-
-
-test forfields-1 {Check calls body script for each row of table} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  set rows [list]
-  hetdb forfields $db tag "tag_" {name title} {
-    lappend rows [list $tag_name $tag_title]
-  }
-  set rows
-} -result [list {cooking {How to Cook}} \
-                {mechanics {How to Make Things}} \
-                {article {An Article}}]
-
-
-test forfields-2 {Check can handle field missing in row} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete_extra_field_in_tag.hetdb]]
-} -body {
-  set rows [list]
-  hetdb forfields $db tag "tag_" {name title priority} {
-    lappend rows [list $tag_name $tag_title]
-  }
-  set rows
-} -returnCodes {error} -result {field "priority" missing from row}
-
-#
-# Used by forfields-3 to check error handled
-proc Hetdb_forfields_with_error {db tablename} {
-  set compLevel [info level]
-  set rowNum 0
-  set isErr [catch {
-    hetdb forfields $db tag "tag_" {name title} {
-      if {$rowNum == 2} {
-        error "this is an error from forfields-3"
-      }
-      incr rowNum
-    }
-  } err options]
-  list $isErr $err [dict get $options -level] $compLevel
-}
-
-test forfields-3 {Check error is handled within body script} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  {*}Hetdb_forfields_with_error $db tag
-} -result {1 {this is an error from forfields-3} 0 1}
-
-
-# Used by forfields-4 to check return handled
-proc Hetdb_forfields_with_return {db tablename} {
-  set compLevel [info level]
-  set rowNum 0
-  set code [catch {
-    hetdb forfields $db tag "tag_" {name title} {
-      if {$rowNum == 2} {
-        return "this is a return from forfields-4"
-      }
-      incr rowNum
-    }
-  } res options]
-  list $code $res [dict get $options -level] $compLevel
-}
-
-test forfields-4 {Check return is handled within body script} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  {*}Hetdb_forfields_with_return $db tag
-} -result {2 {this is a return from forfields-4} 1 1}
-
-
-test forfields-5 {Check break is handled within body script} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  set rows [list]
-  set rowNum 0
-  hetdb forfields $db tag "tag_" {name title} {
-    if {$rowNum == 2} {
-      break
-    }
-    lappend rows [list $tag_name $tag_title]
-    incr rowNum
-  }
-  set rows
-} -result [list {cooking {How to Cook}} \
-                {mechanics {How to Make Things}}]
-
-
-test forfields-6 {Check continue is handled within body script} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  set rows [list]
-  set rowNum 0
-  hetdb forfields $db tag "tag_" {name title} {
-    incr rowNum
-    if {$rowNum == 2} {
-      continue
-    }
-    lappend rows [list $tag_name $tag_title]
-  }
-  set rows
-} -result [list {cooking {How to Cook}} \
-                {article {An Article}}]
-
-
-test forfields-7 {Check will raise an error if a table doesn't exist} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  hetdb forfields $db unknown "unknown_" {name title} {
-  }
-} -returnCodes {error} -result {unknown table "unknown" in database}
 
 
 # Used by sort-1 and sort-2 to compare entries in the tag table
@@ -517,7 +440,7 @@ test sort-1 {Check will return a sorted table} \
 } -body {
   set sortedDB [hetdb sort $db tag CompareTag]
   set rows [list]
-  hetdb for $sortedDB tag tag {
+  hetdb for $sortedDB tag {*} tag {
     lappend rows $tag
   }
   list [expr {$db ne $sortedDB}] $rows

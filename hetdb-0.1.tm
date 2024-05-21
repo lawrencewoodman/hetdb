@@ -17,7 +17,7 @@ namespace eval hetdb {
 # ============================================================================
 #
 # Database Format
-# ---------------
+# ===============
 #
 # A valid database is a Tcl dictionary where each key is a table name and the
 # value is the contents of the table.
@@ -26,15 +26,19 @@ namespace eval hetdb {
 # table.  Each row of the table is a Tcl dictionary where each key is a field
 # and each value is the value of that field.
 #
-# Table names must only consist alphanumeric or '_' characters.  A table name
-# must not start with a '_' unless it is the '_tabledef' table described
+# Table names must only consist of alphanumeric or '_' characters.  A table
+# name must not start with a '_' unless it is the '_tabledef' table described
 # below.  A table name must not end with a '_'.
 #
-# Field names must only consist alphanumeric or '_' characters.  A field name
-# must not start with a '_' or end with a '_'.
+# Field names must only consist of alphanumeric or '_' characters.  A field
+# name must not start with a '_' or end with a '_'.
+#
+#
+# The '_tabledef' Table
+# ---------------------
 #
 # The '_tabledef' table is an optional table used to describe tables.  If
-# present the database is checked against this to ensure that it is valid.
+# present, the database is checked against this to ensure that it is valid.
 # Each row describes one table using the following fields:
 #   name       The name of the table being described.
 #   unique     A list of fields to check for all the rows to ensure that no
@@ -85,78 +89,41 @@ proc hetdb::read {filename} {
 # effect as in the ::for command.
 #
 # Arguments:
-#   db        The database that contains the table.
-#   tablename The name of the table.  It is an error to attempt to access
-#             a table that doesn't exist within the database.
-#   varname   The name of the variable that will be set to the contents of
-#             the row.  The contents of each row is a dictionary of fields
-#             and their values.
-#   body      The script which will be evaluated for each row of the table
-#             and will have varname set with the contents of each row.
-#
-# Results:
-#   None.
-#
-proc hetdb::for {db tablename varname body} {
-  upvar $varname row
-  if {![dict exists $db $tablename]} {
-    return -code error "unknown table \"$tablename\" in database"
-  }
-  foreach row [dict get $db $tablename] {
-    # Exception handling within body from Tcl and the Tk Toolkit, 2nd Edition
-    # Chapter 13 - Errors and Exceptions
-    # Codes: 0 Normal return, 1 Error, 2 return command invoked
-    #        3 break command invoked, 4 continue command invoked
-    set retcode [catch {uplevel 1 $body} res options]
-    switch -- $retcode {
-      0 -
-      4       {}
-      3       {return}
-      default {dict incr options -level
-               return -options $options $res
-              }
-    }
-  }
-}
-
-
-# hetdb::forfields
-#
-# Iterate over each row of a table.
-#
-# The break and continue statements may be invoked inside body, with the same
-# effect as in the ::for command.
-#
-# Arguments:
 #   db          The database that contains the table.
 #   tablename   The name of the table.  It is an error to attempt to access
 #               a table that doesn't exist within the database.
-#   fieldPrefix This is prefixed to each field to create the variables
-#               for each field specified in fields.
-#   fields      A list of fields whose values will retrieved for each row and
-#               variables will be set with their value.  The field variable
-#               names will consist of the field name prefixed with
-#               fieldPrefix.  It is an error to attempt to access a field
-#               which doesn't exist in a row.  Therefore, it is worth
+#   fields      A list of field names whose values will retrieved for each
+#               row.  It is an error to attempt to access a field which
+#               doesn't exist in a row.  Therefore, it is worth
 #               specifying any fields used by this procedure as mandatory
 #               and use the validate command to ensure they are present for
-#               all rows of a table.
+#               all rows of a table.  If fields is set to '*' then all the
+#               fields in a row will be selected.
+#   varname     The name of the variable that will be set for each row.  The
+#               variable will be set to a dictionary with the field names as
+#               keys and their values as the associated value.  The keys will
+#               be in the order that the fields are listed.
 #   body        The script which will be evaluated for each row of the table
-#               and will have the fields requested set for each row.
+#               and varname will be set for each row as above.
 #
 # Results:
 #   None.
 #
-proc hetdb::forfields {db tablename fieldPrefix fields body} {
+proc hetdb::for {db tablename fields varname body} {
+  upvar $varname rowDict
   if {![dict exists $db $tablename]} {
     return -code error "unknown table \"$tablename\" in database"
   }
   foreach row [dict get $db $tablename] {
+    set rowDict [dict create]
+    if {$fields eq "*"} {
+      set fields [dict keys $row]
+    }
     foreach fieldname $fields {
       if {![dict exists $row $fieldname]} {
         return -code error "field \"$fieldname\" missing from row"
       }
-      uplevel 1 [list set $fieldPrefix$fieldname [dict get $row $fieldname]]
+      dict set rowDict $fieldname [dict get $row $fieldname]
     }
     # Exception handling within body from Tcl and the Tk Toolkit, 2nd Edition
     # Chapter 13 - Errors and Exceptions
