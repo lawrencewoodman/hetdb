@@ -98,11 +98,11 @@ proc hetdb::read {filename} {
 #   None.
 #
 proc hetdb::for {db tablename varname body} {
+  upvar $varname row
   if {![dict exists $db $tablename]} {
     return -code error "unknown table \"$tablename\" in database"
   }
-  foreach e [dict get $db $tablename] {
-    uplevel 1 [list set $varname $e]
+  foreach row [dict get $db $tablename] {
     # Exception handling within body from Tcl and the Tk Toolkit, 2nd Edition
     # Chapter 13 - Errors and Exceptions
     # Codes: 0 Normal return, 1 Error, 2 return command invoked
