@@ -307,7 +307,7 @@ test for-2 {Check can handle field missing in row} \
   set rows
 } -returnCodes {error} -result {field "priority" missing from row}
 
-#
+
 # Used by for-3 to check error handled
 proc Hetdb_for_with_error {db tablename} {
   set compLevel [info level]
@@ -426,6 +426,37 @@ test for-9 {Check that * for fields returns all fields} \
                 {name mechanics title {How to Make Things} main true} \
                 {name article title {An Article} main false}]
 
+
+test for-10 {Check uses tablename as varname if latter not supplied} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  set rows [list]
+  hetdb for $db tag {name title} {
+    lappend rows $tag
+  }
+  set rows
+} -result [list {name cooking title {How to Cook}} \
+                {name mechanics title {How to Make Things}} \
+                {name article title {An Article}}]
+
+
+test for-11 {Check returns an error if not enough arguments supplied} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  hetdb for $db tag {
+  }
+} -returnCodes error -result {wrong # args: should be "for db tablename fields ?varname? body"}
+
+
+test for-12 {Check returns an error if too many arguments supplied} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  hetdb for $db tag {name title} tag fred {
+  }
+} -returnCodes error -result {wrong # args: should be "for db tablename fields ?varname? body"}
 
 
 # Used by sort-1 and sort-2 to compare entries in the tag table

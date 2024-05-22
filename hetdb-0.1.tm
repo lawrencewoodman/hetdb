@@ -90,8 +90,9 @@ proc hetdb::read {filename} {
 #
 # Arguments:
 #   db          The database that contains the table.
-#   tablename   The name of the table.  It is an error to attempt to access
-#               a table that doesn't exist within the database.
+#   tablename   The name of the table.  If varname isn't supplied then the
+#               table name will be used as varname.  It is an error to attempt
+#               to access a table that doesn't exist within the database.
 #   fields      A list of field names whose values will retrieved for each
 #               row.  It is an error to attempt to access a field which
 #               doesn't exist in a row.  Therefore, it is worth
@@ -99,7 +100,8 @@ proc hetdb::read {filename} {
 #               and use the validate command to ensure they are present for
 #               all rows of a table.  If fields is set to '*' then all the
 #               fields in a row will be selected.
-#   varname     The name of the variable that will be set for each row.  The
+#   ?varname?   The name of the variable that will be set for each row.  This
+#               will default to tablename if varname isn't supplied.  The
 #               variable will be set to a dictionary with the field names as
 #               keys and their values as the associated value.  The keys will
 #               be in the order that the fields are listed.
@@ -109,7 +111,12 @@ proc hetdb::read {filename} {
 # Results:
 #   None.
 #
-proc hetdb::for {db tablename fields varname body} {
+proc hetdb::for {db tablename fields args} {
+  switch [llength $args] {
+    1 { set varname $tablename; lassign $args body }
+    2 { lassign $args varname body }
+    default { return -code error "wrong # args: should be \"for db tablename fields ?varname? body\"" }
+  }
   upvar $varname rowDict
   if {![dict exists $db $tablename]} {
     return -code error "unknown table \"$tablename\" in database"
