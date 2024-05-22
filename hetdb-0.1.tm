@@ -44,6 +44,8 @@ namespace eval hetdb {
 #   unique     A list of fields to check for all the rows to ensure that no
 #              two rows have the same value for a field.  When comparing
 #              values the strings are trimmed.
+#   optional   A list of fields whose presence is optional in each row of a
+#              table.
 #   mandatory  A list of fields that must be present in each row of a table.
 #
 # ============================================================================
@@ -111,7 +113,7 @@ proc hetdb::read {filename} {
 # Results:
 #   None.
 #
-proc hetdb::for {db tablename fields args} {
+proc hetdb::for {db tablename _fields args} {
   switch [llength $args] {
     1 { set varname $tablename; lassign $args body }
     2 { lassign $args varname body }
@@ -123,8 +125,10 @@ proc hetdb::for {db tablename fields args} {
   }
   foreach row [dict get $db $tablename] {
     set rowDict [dict create]
-    if {$fields eq "*"} {
+    if {$_fields eq "*"} {
       set fields [dict keys $row]
+    } else {
+      set fields $_fields
     }
     foreach fieldname $fields {
       if {![dict exists $row $fieldname]} {
@@ -197,6 +201,9 @@ proc hetdb::validate {db} {
   }
 
   dict for {tablename rows} $db {
+    if {$tablename eq "_tabledef"} {
+      continue
+    }
     set err [ValidateTable $tabledef $tablename $rows]
     if {$err ne ""} {
       return $err
@@ -249,6 +256,7 @@ proc hetdb::ValidateTable {tabledef tablename rows} {
   if {![string is list $rows]} {
     return "structure of table \"$tablename\" not valid"
   }
+  set optional [MustDictGet $tabledef $tablename optional]
   set mandatory [MustDictGet $tabledef $tablename mandatory]
   set unique [MustDictGet $tabledef $tablename unique]
   set uniques [dict create]
@@ -270,6 +278,9 @@ proc hetdb::ValidateTable {tabledef tablename rows} {
     foreach field $fields {
       if {![IsValidFieldname $field]} {
         return "invalid field name \"$field\" in table \"$tablename\""
+      }
+      if {$field ni $mandatory && $field ni $optional} {
+        return "extra field \"$field\" in table \"$tablename\""
       }
       if {$field in $unique} {
         set val [string trim [dict get $row $field]]
@@ -293,8 +304,8 @@ proc hetdb::ValidateTable {tabledef tablename rows} {
 proc hetdb::GetTabledef {db} {
   set ret [dict create]
   set tabledefs [MustDictGet $db _tabledef]
-  set tabledefTabledef {_tabledef {mandatory name unique name}}
-  set err [ValidateTable $tabledefTabledef _tabledef $tabledefs]
+  set _tabledefTabledef {_tabledef {mandatory name optional {mandatory optional unique} unique name}}
+  set err [ValidateTable $_tabledefTabledef _tabledef $tabledefs]
   if {$err ne ""} {
     return [list {} $err]
   }
@@ -303,7 +314,15 @@ proc hetdb::GetTabledef {db} {
     if {$tablename eq "_tabledef"} {
       return [list {} "can't define \"_tabledef\" in table \"_tabledef\""]
     }
-    dict set ret $tablename mandatory [MustDictGet $tabledef mandatory]
+    set optional [MustDictGet $tabledef optional]
+    set mandatory [MustDictGet $tabledef mandatory]
+    foreach optionalField $optional {
+      if {$optionalField in $mandatory} {
+        return [list {} "field \"$optionalField\" in table \"$tablename\" can't be optional and mandatory"]
+      }
+    }
+    dict set ret $tablename optional $optional
+    dict set ret $tablename mandatory $mandatory
     dict set ret $tablename unique [MustDictGet $tabledef unique]
   }
 

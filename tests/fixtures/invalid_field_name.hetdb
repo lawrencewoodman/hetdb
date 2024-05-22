@@ -1,6 +1,7 @@
 _tabledef {
-  {name tag mandatory {name title}}
-  {name link unique url mandatory {url title tags}}
+  {name tag mandatory {name title} optional main}
+  {name link unique url mandatory {url title tags}
+   optional {a a_b hello_goodbye_again}}
 }
 
 

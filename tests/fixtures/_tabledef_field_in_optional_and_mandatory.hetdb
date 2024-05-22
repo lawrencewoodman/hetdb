@@ -1,7 +1,6 @@
 _tabledef {
-  {name tag mandatory {name title} optional main}
+  {name tag mandatory {name title main} optional main}
   {name link unique url mandatory {url title tags}}
-  {name some-thing mandatory name}
 }
 
 
@@ -9,12 +8,6 @@ tag {
   {name cooking title {How to Cook} main true}
   {name mechanics title {How to Make Things} main true}
   {name article title {An Article} main false}
-}
-
-
-some-thing {
-  {name a}
-  {name b}
 }
 
 

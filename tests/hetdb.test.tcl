@@ -97,6 +97,18 @@ test read-14 {Check raises error if a field name is invalid} \
   hetdb read [file join $FixturesDir invalid_field_name.hetdb]
 } -returnCodes {error} -result {invalid field name "some-thing" in table "link"}
 
+test read-15 {Check raises error if field isn't in mandatory or optional} \
+-body {
+    hetdb read [file join $FixturesDir extra_field_in_row.hetdb]
+} -returnCodes {error} -result {extra field "priority" in table "tag"}
+
+
+test read-16 {Check raises error if def in _tabledef has the same field in mandatory and optional} \
+-body {
+    hetdb read [file join $FixturesDir _tabledef_field_in_optional_and_mandatory.hetdb]
+} -returnCodes {error} -result {field "main" in table "tag" can't be optional and mandatory}
+
+
 
 # The following tests for validate should be kept in sync with the read tests
 # above therefore validate-2 isn't present below
@@ -230,7 +242,6 @@ test validate-13 {Check raises error if a table name is invalid} \
   # A list of table names to switch some-thing for to test against
   set testTablenames {
     some-thing
-    _tabledef
     _borris
     a
     a_b
@@ -245,7 +256,7 @@ test validate-13 {Check raises error if a table name is invalid} \
     lappend got [hetdb validate $db]
   }
   set got
-} -result [list {invalid table name "some-thing"} {} \
+} -result [list {invalid table name "some-thing"} \
                 {invalid table name "_borris"} {} {} {} \
                 {invalid table name "a_"} \
                 {invalid table name "today_is_"}]
@@ -282,6 +293,29 @@ test validate-14 {Check raises error if a field name is invalid} \
                 {invalid field name "today_is_" in table "link"}]
 
 
+test validate-15 {Check raises error if field isn't in mandatory or optional} \
+-setup {
+    set filename [file join $FixturesDir extra_field_in_row.hetdb]
+    set fd [open $filename r]
+    set db [::read $fd]
+    close $fd
+ } -body {
+  hetdb validate $db
+} -result {extra field "priority" in table "tag"}
+
+
+test validate-16 {Check raises error if def in _tabledef has the same field in mandatory and optional} \
+-setup {
+    set filename [file join $FixturesDir _tabledef_field_in_optional_and_mandatory.hetdb]
+    set fd [open $filename r]
+    set db [::read $fd]
+    close $fd
+ } -body {
+  hetdb validate $db
+} -result {field "main" in table "tag" can't be optional and mandatory}
+
+
+
 test for-1 {Check calls body script for each row of table} \
 -setup {
   set db [hetdb read [file join $FixturesDir complete.hetdb]]
@@ -298,7 +332,7 @@ test for-1 {Check calls body script for each row of table} \
 
 test for-2 {Check can handle field missing in row} \
 -setup {
-  set db [hetdb read [file join $FixturesDir complete_extra_field_in_tag.hetdb]]
+  set db [hetdb read [file join $FixturesDir missing_optional_field_in_tag.hetdb]]
 } -body {
   set rows [list]
   hetdb for $db tag {name title priority} tag {
@@ -423,7 +457,7 @@ test for-9 {Check that * for fields returns all fields} \
   }
   set rows
 } -result [list {name cooking title {How to Cook} main true} \
-                {name mechanics title {How to Make Things} main true} \
+                {name mechanics title {How to Make Things}} \
                 {name article title {An Article} main false}]
 
 
@@ -471,14 +505,14 @@ test sort-1 {Check will return a sorted table} \
 } -body {
   set sortedDB [hetdb sort $db tag CompareTag]
   set rows [list]
-  hetdb for $sortedDB tag {*} tag {
+  hetdb for $sortedDB tag {*} {
     lappend rows $tag
   }
   list [expr {$db ne $sortedDB}] $rows
 } -result [list 1 [list \
              {name article title {An Article} main false} \
              {name cooking title {How to Cook} main true} \
-             {name mechanics title {How to Make Things} main true}]]
+             {name mechanics title {How to Make Things}}]]
 
 
 test sort-2 {Check will raise an error if a table doesn't exist} \

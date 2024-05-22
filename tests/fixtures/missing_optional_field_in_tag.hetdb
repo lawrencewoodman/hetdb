@@ -1,20 +1,13 @@
 _tabledef {
-  {name tag mandatory {name title} optional main}
+  {name tag mandatory {name title} optional {main priority}}
   {name link unique url mandatory {url title tags}}
-  {name some-thing mandatory name}
 }
 
 
 tag {
-  {name cooking title {How to Cook} main true}
-  {name mechanics title {How to Make Things} main true}
+  {name cooking title {How to Cook} main true priority 3}
+  {name mechanics title {How to Make Things} main true priority 1}
   {name article title {An Article} main false}
-}
-
-
-some-thing {
-  {name a}
-  {name b}
 }
 
 

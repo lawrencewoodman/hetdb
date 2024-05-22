@@ -1,5 +1,5 @@
 _tabledef {
-  {name tag mandatory {name title}}
+  {name tag mandatory {name title} optional main}
   {name link unique url mandatory {url title tags}}
 }
 
