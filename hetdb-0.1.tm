@@ -256,6 +256,9 @@ proc hetdb::ValidateTable {tabledef tablename rows} {
   if {![string is list $rows]} {
     return "structure of table \"$tablename\" not valid"
   }
+  if {![dict exists $tabledef $tablename]} {
+    return "no entry for table \"$tablename\" in table \"_tabledef\""
+  }
   set optional [MustDictGet $tabledef $tablename optional]
   set mandatory [MustDictGet $tabledef $tablename mandatory]
   set unique [MustDictGet $tabledef $tablename unique]
@@ -303,7 +306,10 @@ proc hetdb::ValidateTable {tabledef tablename rows} {
 # is an error if present
 proc hetdb::GetTabledef {db} {
   set ret [dict create]
-  set tabledefs [MustDictGet $db _tabledef]
+  if {![dict exists $db _tabledef]} {
+    return [list {} "table \"_tabledef\" is missing"]
+  }
+  set tabledefs [dict get $db _tabledef]
   set _tabledefTabledef {_tabledef {mandatory name optional {mandatory optional unique} unique name}}
   set err [ValidateTable $_tabledefTabledef _tabledef $tabledefs]
   if {$err ne ""} {

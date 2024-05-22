@@ -103,10 +103,22 @@ test read-15 {Check raises error if field isn't in mandatory or optional} \
 } -returnCodes {error} -result {extra field "priority" in table "tag"}
 
 
-test read-16 {Check raises error if def in _tabledef has the same field in mandatory and optional} \
+test read-16 {Check raises error if a tabledef in _tabledef has the same field in mandatory and optional} \
 -body {
     hetdb read [file join $FixturesDir _tabledef_field_in_optional_and_mandatory.hetdb]
 } -returnCodes {error} -result {field "main" in table "tag" can't be optional and mandatory}
+
+
+test read-17 {Check raises error if missing a tabledef in _tabledef for a table} \
+-body {
+    hetdb read [file join $FixturesDir _tabledef_missing_table.hetdb]
+} -returnCodes {error} -result {no entry for table "link" in table "_tabledef"}
+
+
+test read-18 {Check raises error if _tabledef missing} \
+-body {
+    hetdb read [file join $FixturesDir _tabledef_missing.hetdb]
+} -returnCodes {error} -result {table "_tabledef" is missing}
 
 
 
@@ -304,7 +316,7 @@ test validate-15 {Check raises error if field isn't in mandatory or optional} \
 } -result {extra field "priority" in table "tag"}
 
 
-test validate-16 {Check raises error if def in _tabledef has the same field in mandatory and optional} \
+test validate-16 {Check raises error if a tabledef in _tabledef has the same field in mandatory and optional} \
 -setup {
     set filename [file join $FixturesDir _tabledef_field_in_optional_and_mandatory.hetdb]
     set fd [open $filename r]
@@ -313,6 +325,28 @@ test validate-16 {Check raises error if def in _tabledef has the same field in m
  } -body {
   hetdb validate $db
 } -result {field "main" in table "tag" can't be optional and mandatory}
+
+
+test validate-17 {Check raises error if missing a tabledef in _tabledef for a table} \
+-setup {
+    set filename [file join $FixturesDir _tabledef_missing_table.hetdb]
+    set fd [open $filename r]
+    set db [::read $fd]
+    close $fd
+ } -body {
+  hetdb validate $db
+} -result {no entry for table "link" in table "_tabledef"}
+
+
+test validate-18 {Check raises error if _tabledef missing} \
+-setup {
+    set filename [file join $FixturesDir _tabledef_missing.hetdb]
+    set fd [open $filename r]
+    set db [::read $fd]
+    close $fd
+} -body {
+  hetdb validate $db
+} -result {table "_tabledef" is missing}
 
 
 
