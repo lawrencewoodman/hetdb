@@ -136,8 +136,6 @@ proc hetdb::for {db tablename _fields args} {
       }
       dict set rowDict $fieldname [dict get $row $fieldname]
     }
-    # Exception handling within body from Tcl and the Tk Toolkit, 2nd Edition
-    # Chapter 13 - Errors and Exceptions
     # Codes: 0 Normal return, 1 Error, 2 return command invoked
     #        3 break command invoked, 4 continue command invoked
     set retcode [catch {uplevel 1 $body} res options]
@@ -145,9 +143,7 @@ proc hetdb::for {db tablename _fields args} {
       0 -
       4       {}
       3       {return}
-      default {dict incr options -level
-               return -options $options $res
-              }
+      default {return -code $retcode $res}
     }
   }
 }

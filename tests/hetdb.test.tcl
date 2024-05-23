@@ -376,19 +376,29 @@ test for-2 {Check can handle field missing in row} \
 } -returnCodes {error} -result {field "priority" missing from row}
 
 
-# Used by for-3 to check error handled
+# Used by for-3 to check error handled in the same way as ::for
 proc Hetdb_for_with_error {db tablename} {
   set compLevel [info level]
   set rowNum 0
-  set isErr [catch {
+  set isErrA [catch {
     hetdb for $db tag {name title} tag {
       if {$rowNum == 2} {
         error "this is an error from for-3"
       }
       incr rowNum
     }
-  } err options]
-  list $isErr $err [dict get $options -level] $compLevel
+  } errA optionsA]
+  set isErrB [catch {
+    for {set i 0} {$i < 10} {incr i} {
+      if {$i == 2} {
+        error "this is an error from for-3"
+      }
+      incr rowNum
+    }
+  } errB optionsB]
+  list $isErrA $errA [dict get $optionsA -level] \
+       $isErrB $errB [dict get $optionsB -level] \
+       $compLevel
 }
 
 test for-3 {Check error is handled within body script} \
@@ -396,22 +406,34 @@ test for-3 {Check error is handled within body script} \
   set db [hetdb read [file join $FixturesDir complete.hetdb]]
 } -body {
   {*}Hetdb_for_with_error $db tag
-} -result {1 {this is an error from for-3} 0 1}
+} -result [list 1 {this is an error from for-3} 0 \
+                1 {this is an error from for-3} 0 \
+                1]
 
 
-# Used by for-4 to check return handled
+# Used by for-4 to check return handled in the same was as ::for
 proc Hetdb_for_with_return {db tablename} {
   set compLevel [info level]
   set rowNum 0
-  set code [catch {
+  set codeA [catch {
     hetdb for $db tag {name title} tag {
       if {$rowNum == 2} {
         return "this is a return from for-4"
       }
       incr rowNum
     }
-  } res options]
-  list $code $res [dict get $options -level] $compLevel
+  } resA optionsA]
+  set codeB [catch {
+    for {set i 0} {$i < 10} {incr i} {
+      if {$i == 2} {
+        return "this is a return from for-4"
+      }
+      incr rowNum
+    }
+  } resB optionsB]
+  list $codeA $resA [dict get $optionsA -level] \
+       $codeB $resB [dict get $optionsB -level] \
+       $compLevel
 }
 
 test for-4 {Check return is handled within body script} \
@@ -419,7 +441,9 @@ test for-4 {Check return is handled within body script} \
   set db [hetdb read [file join $FixturesDir complete.hetdb]]
 } -body {
   {*}Hetdb_for_with_return $db tag
-} -result {2 {this is a return from for-4} 1 1}
+} -result [list 2 {this is a return from for-4} 1 \
+                2 {this is a return from for-4} 1 \
+                1]
 
 
 test for-5 {Check break is handled within body script} \
