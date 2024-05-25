@@ -113,7 +113,7 @@ proc hetdb::read {filename} {
 # Results:
 #   None.
 #
-proc hetdb::for {db tablename _fields args} {
+proc hetdb::for {db tablename fields args} {
   switch [llength $args] {
     1 { set varname $tablename; lassign $args body }
     2 { lassign $args varname body }
@@ -125,12 +125,12 @@ proc hetdb::for {db tablename _fields args} {
   }
   foreach row [dict get $db $tablename] {
     set rowDict [dict create]
-    if {$_fields eq "*"} {
-      set fields [dict keys $row]
+    if {$fields eq "*"} {
+      set _fields [dict keys $row]
     } else {
-      set fields $_fields
+      set _fields $fields
     }
-    foreach fieldname $fields {
+    foreach fieldname $_fields {
       if {![dict exists $row $fieldname]} {
         return -code error "field \"$fieldname\" missing from row"
       }
