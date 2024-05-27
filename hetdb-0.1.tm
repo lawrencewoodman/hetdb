@@ -341,7 +341,7 @@ proc hetdb::IsDict value {
 # Return the value for the key/key chain in dictionary or {}
 proc hetdb::MustDictGet {dict args} {
   if {[llength $args] < 1} {
-    return -code "invalid number of arguments"
+    return -code error "wrong # args: should be \"MustDictGet dictionaryValue ?key ...?\""
   }
   set keys $args
   if {[dict exists $dict {*}$keys]} {
