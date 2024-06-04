@@ -355,8 +355,8 @@ test for-1 {Check calls body script for each row of table} \
   set db [hetdb read [file join $FixturesDir complete.hetdb]]
 } -body {
   set rows [list]
-  hetdb for $db tag {name title} tag {
-    lappend rows $tag
+  hetdb for $db tag {name title} {
+    lappend rows [dict create name $tag_name title $tag_title]
   }
   set rows
 } -result [list {name cooking title {How to Cook}} \
@@ -369,11 +369,13 @@ test for-2 {Check can handle field missing in row} \
   set db [hetdb read [file join $FixturesDir missing_optional_field_in_tag.hetdb]]
 } -body {
   set rows [list]
-  hetdb for $db tag {name title priority} tag {
-    lappend rows [dict values $tag]
+  hetdb for $db tag {name title priority} {
+    lappend rows [dict create name $tag_name title $tag_title priority $tag_priority]
   }
   set rows
-} -returnCodes {error} -result {field "priority" missing from row}
+} -result [list {name cooking title {How to Cook} priority 3} \
+                {name mechanics title {How to Make Things} priority 1} \
+                {name article title {An Article} priority {}}]
 
 
 # Used by for-3 to check error handled in the same way as ::for
@@ -381,7 +383,7 @@ proc Hetdb_for_with_error {db tablename} {
   set compLevel [info level]
   set rowNum 0
   set isErrA [catch {
-    hetdb for $db tag {name title} tag {
+    hetdb for $db tag {name title} {
       if {$rowNum == 2} {
         error "this is an error from for-3"
       }
@@ -416,7 +418,7 @@ proc Hetdb_for_with_return {db tablename} {
   set compLevel [info level]
   set rowNum 0
   set codeA [catch {
-    hetdb for $db tag {name title} tag {
+    hetdb for $db tag {name title} {
       if {$rowNum == 2} {
         return "this is a return from for-4"
       }
@@ -452,11 +454,11 @@ test for-5 {Check break is handled within body script} \
 } -body {
   set rows [list]
   set rowNum 0
-  hetdb for $db tag {name title} tag {
+  hetdb for $db tag {name title} {
     if {$rowNum == 2} {
       break
     }
-    lappend rows $tag
+    lappend rows [dict create name $tag_name title $tag_title]
     incr rowNum
   }
   set rows
@@ -470,12 +472,12 @@ test for-6 {Check continue is handled within body script} \
 } -body {
   set rows [list]
   set rowNum 0
-  hetdb for $db tag {name title} tag {
+  hetdb for $db tag {name title} {
     incr rowNum
     if {$rowNum == 2} {
       continue
     }
-    lappend rows $tag
+    lappend rows [dict create name $tag_name title $tag_title]
   }
   set rows
 } -result [list {name cooking title {How to Cook}} \
@@ -486,46 +488,19 @@ test for-7 {Check will raise an error if a table doesn't exist} \
 -setup {
   set db [hetdb read [file join $FixturesDir complete.hetdb]]
 } -body {
-  hetdb for $db unknown {name title} tag {
+  hetdb for $db unknown {name title} {
   }
 } -returnCodes {error} -result {unknown table "unknown" in database}
 
 
-test for-8 {Check that the order of fiels is used in the row return} \
+
+test for-8 {Check -fieldprefix can be used to change variable name prefix from tablename} \
 -setup {
   set db [hetdb read [file join $FixturesDir complete.hetdb]]
 } -body {
   set rows [list]
-  hetdb for $db tag {title name} tag {
-    lappend rows $tag
-  }
-  set rows
-} -result [list {title {How to Cook} name cooking} \
-                {title {How to Make Things} name mechanics} \
-                {title {An Article} name article}]
-
-
-test for-9 {Check that * for fields returns all fields} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  set rows [list]
-  hetdb for $db tag {*} tag {
-    lappend rows $tag
-  }
-  set rows
-} -result [list {name cooking title {How to Cook} main true} \
-                {name mechanics title {How to Make Things}} \
-                {name article title {An Article} main false}]
-
-
-test for-10 {Check uses tablename as varname if latter not supplied} \
--setup {
-  set db [hetdb read [file join $FixturesDir complete.hetdb]]
-} -body {
-  set rows [list]
-  hetdb for $db tag {name title} {
-    lappend rows $tag
+  hetdb for -fieldprefix row $db tag {name title} {
+    lappend rows [dict create name $row_name title $row_title]
   }
   set rows
 } -result [list {name cooking title {How to Cook}} \
@@ -533,22 +508,45 @@ test for-10 {Check uses tablename as varname if latter not supplied} \
                 {name article title {An Article}}]
 
 
-test for-11 {Check returns an error if not enough arguments supplied} \
+test for-9 {Check returns an error if not enough arguments supplied} \
 -setup {
   set db [hetdb read [file join $FixturesDir complete.hetdb]]
 } -body {
   hetdb for $db tag {
   }
-} -returnCodes error -result {wrong # args: should be "for db tablename fields ?varname? body"}
+} -returnCodes error -result {wrong # args: should be "for ?switches? db tablename fields body"}
 
 
-test for-12 {Check returns an error if too many arguments supplied} \
+test for-10 {Check returns an error if too many arguments supplied} \
 -setup {
   set db [hetdb read [file join $FixturesDir complete.hetdb]]
 } -body {
-  hetdb for $db tag {name title} tag fred {
+  hetdb for $db tag {name title} tag {
   }
-} -returnCodes error -result {wrong # args: should be "for db tablename fields ?varname? body"}
+} -returnCodes error -result {wrong # args: should be "for ?switches? db tablename fields body"}
+
+
+test for-11 {Check returns an error if invalid switch passed} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  hetdb for -prefix $db tag {name title} tag {
+  }
+} -returnCodes error -result {unknown option: -prefix}
+
+
+test for-12 {Check -- ends processing of switches} \
+-setup {
+  set db [hetdb read [file join $FixturesDir complete.hetdb]]
+} -body {
+  set rows [list]
+  hetdb for -- $db tag {name title} {
+    lappend rows [dict create name $tag_name title $tag_title]
+  }
+  set rows
+} -result [list {name cooking title {How to Cook}} \
+                {name mechanics title {How to Make Things}} \
+                {name article title {An Article}}]
 
 
 # Used by sort-1 and sort-2 to compare entries in the tag table
@@ -563,14 +561,14 @@ test sort-1 {Check will return a sorted table} \
 } -body {
   set sortedDB [hetdb sort $db tag CompareTag]
   set rows [list]
-  hetdb for $sortedDB tag {*} {
-    lappend rows $tag
+  hetdb for $sortedDB tag {name title main} {
+    lappend rows [dict create name $tag_name title $tag_title main $tag_main]
   }
   list [expr {$db ne $sortedDB}] $rows
 } -result [list 1 [list \
              {name article title {An Article} main false} \
              {name cooking title {How to Cook} main true} \
-             {name mechanics title {How to Make Things}}]]
+             {name mechanics title {How to Make Things} main {}}]]
 
 
 test sort-2 {Check will raise an error if a table doesn't exist} \

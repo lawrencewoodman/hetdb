@@ -91,54 +91,58 @@ proc hetdb::read {filename} {
 # effect as in the ::for command.
 #
 # Arguments:
+#   ?switches?  See below.
 #   db          The database that contains the table.
-#   tablename   The name of the table.  If varname isn't supplied then the
-#               table name will be used as varname.  It is an error to attempt
-#               to access a table that doesn't exist within the database.
+#   tablename   The name of the table. It is an error to attempt to access a
+#               table that doesn't exist within the database.
 #   fields      A list of field names whose values will retrieved for each
-#               row.  It is an error to attempt to access a field which
-#               doesn't exist in a row.  Therefore, it is worth
-#               specifying any fields used by this procedure as mandatory
-#               and use the validate command to ensure they are present for
-#               all rows of a table.  If fields is set to '*' then all the
-#               fields in a row will be selected.
-#   ?varname?   The name of the variable that will be set for each row.  This
-#               will default to tablename if varname isn't supplied.  The
-#               variable will be set to a dictionary with the field names as
-#               keys and their values as the associated value.  The keys will
-#               be in the order that the fields are listed.
-#   body        The script which will be evaluated for each row of the table
-#               and varname will be set for each row as above.
+#               row.  If the field name doesn't exist in a row then {} will
+#               be used as its value.
+#   body        The script which will be evaluated for each row of the tablea.
+#               Each iteration will have variables created for each field
+#               requested.  The names of the variables will be of the form
+#               'fieldprefix_fieldname' where fieldprefix will be the
+#               tablename or a field prefix pass using the '-fieldprefix'
+#               switch.
+#
+# Switches:
+#   -fieldprefix fieldprefix  A prefix used instead of the tablename to
+#                             create the variables for each field.
 #
 # Results:
 #   None.
 #
-proc hetdb::for {db tablename fields args} {
-  switch [llength $args] {
-    1 { set varname $tablename; lassign $args body }
-    2 { lassign $args varname body }
-    default { return -code error "wrong # args: should be \"for db tablename fields ?varname? body\"" }
+proc hetdb::for {args} {
+  array set options {}
+  while {[llength $args]} {
+    switch -glob -- [lindex $args 0] {
+      -fieldprefix {set args [lassign $args - options(fieldprefix)]}
+      --      {set args [lrange $args 1 end] ; break}
+      -*      {return -code error "unknown option: [lindex $args 0]"}
+      default break
+    }
   }
-  upvar $varname rowDict
+  if {[llength $args] != 4} {
+    return -code error "wrong # args: should be \"for ?switches? db tablename fields body\""
+  }
+
+  lassign $args db tablename fields body
+  if {[info exists options(fieldprefix)]} {
+    set fieldprefix $options(fieldprefix)
+  } else {
+    set fieldprefix $tablename
+  }
+
   if {![dict exists $db $tablename]} {
     return -code error "unknown table \"$tablename\" in database"
   }
   foreach row [dict get $db $tablename] {
-    set rowDict [dict create]
-    if {$fields eq "*"} {
-      set _fields [dict keys $row]
-    } else {
-      set _fields $fields
-    }
-    foreach fieldname $_fields {
-      if {![dict exists $row $fieldname]} {
-        return -code error "field \"$fieldname\" missing from row"
-      }
-      dict set rowDict $fieldname [dict get $row $fieldname]
+    foreach field $fields {
+      uplevel 1 [list set ${fieldprefix}_$field [MustDictGet $row $field]]
     }
     # Codes: 0 Normal return, 1 Error, 2 return command invoked
     #        3 break command invoked, 4 continue command invoked
-    set retcode [catch {uplevel 1 $body} res options]
+    set retcode [catch {uplevel 1 $body} res]
     switch -- $retcode {
       0 -
       4       {}
